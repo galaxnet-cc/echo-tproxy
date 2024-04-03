@@ -1,6 +1,7 @@
 module github.com/ginuerzh/gost
 
-go 1.20
+// EMOD: change to go 1.22, always use latest to get best performance.
+go 1.22
 
 replace github.com/templexxx/cpu v0.0.7 => github.com/templexxx/cpu v0.0.10-0.20211111114238-98168dcec14a
 
@@ -23,6 +24,7 @@ require (
 	github.com/shadowsocks/go-shadowsocks2 v0.1.5
 	github.com/shadowsocks/shadowsocks-go v0.0.0-20200409064450-3e585ff90601
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
+	github.com/vishvananda/netns v0.0.4
 	github.com/xtaci/kcp-go/v5 v5.6.1
 	github.com/xtaci/smux v1.5.16
 	github.com/xtaci/tcpraw v1.2.25

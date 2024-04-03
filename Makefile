@@ -29,7 +29,9 @@ WINDOWS_ARCH_LIST = \
 	windows-amd64 \
 	windows-arm64
 
-all: linux-amd64 darwin-amd64 windows-amd64 # Most used
+# EMOD: default only build amd64.
+#all: linux-amd64 darwin-amd64 windows-amd64 # Most used
+all: linux-amd64
 
 darwin-amd64:
 	GOARCH=amd64 GOOS=darwin $(GOBUILD) -o $(BINDIR)/$(NAME)-$@ $(GOFILES)

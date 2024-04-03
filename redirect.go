@@ -53,10 +53,18 @@ func (h *tcpRedirectHandler) Handle(c net.Conn) {
 
 	log.Logf("[red-tcp] %s -> %s", srcAddr, dstAddr)
 
+	// EMOD: 打开preserveSrc时，需要传递相应的参数
+	options := make([]ChainOption, 0)
+	options = append(options, RetryChainOption(h.options.Retries))
+	options = append(options, TimeoutChainOption(h.options.Timeout))
+	if h.options.PreserveSrc {
+		options = append(options, SrcAddrChainOption(srcAddr))
+		options = append(options, NetnsChainOption(h.options.ProxyNetns))
+	}
 	cc, err := h.options.Chain.DialContext(context.Background(),
 		"tcp", dstAddr.String(),
-		RetryChainOption(h.options.Retries),
-		TimeoutChainOption(h.options.Timeout),
+		// EMOD: use dynamic options.
+		options...,
 	)
 	if err != nil {
 		log.Logf("[red-tcp] %s -> %s : %s", srcAddr, dstAddr, err)

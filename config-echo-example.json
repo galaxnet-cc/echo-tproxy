@@ -1,0 +1,9 @@
+{
+    "Debug": true,
+    "Retries": 3,
+    "ServeNodes": [
+      "red://192.168.31.179:12345?preserveSrc=true&proxyNetns=gost-out"
+    ],
+    "ChainNodes": [
+    ]
+}

@@ -32,6 +32,9 @@ type Node struct {
 	Client           *Client
 	marker           *failMarker
 	Bypass           *Bypass
+	// EMOD:
+	PreserveSrc      bool
+	ProxyNetns       string
 }
 
 // ParseNode parses the node info.

@@ -44,6 +44,11 @@ type HandlerOptions struct {
 	IPRoutes      []IPRoute
 	ProxyAgent    string
 	HTTPTunnel    bool
+	// EMOD:
+	// 是否用原来的src ip +src port发起proxy请求。
+	PreserveSrc  bool
+	// 发起Proxy连接时需要使用的netns。
+	ProxyNetns   string
 }
 
 // HandlerOption allows a common way to set handler options.
@@ -224,6 +229,18 @@ func ProxyAgentHandlerOption(agent string) HandlerOption {
 func HTTPTunnelHandlerOption(tunnelMode bool) HandlerOption {
 	return func(opts *HandlerOptions) {
 		opts.HTTPTunnel = tunnelMode
+	}
+}
+
+// EMOD:
+func PreserveSrcHandlerOption(preserveSrc bool) HandlerOption {
+	return func(opts *HandlerOptions) {
+		opts.PreserveSrc = preserveSrc
+	}
+}
+func ProxyNetnsHandlerOption(proxyNetns string) HandlerOption {
+	return func(opts *HandlerOptions) {
+		opts.ProxyNetns = proxyNetns
 	}
 }
 

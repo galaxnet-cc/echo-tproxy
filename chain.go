@@ -7,8 +7,13 @@ import (
 	"net"
 	"syscall"
 	"time"
+	// EMOD:
+	"runtime"
 
 	"github.com/go-log/log"
+
+	// EMOD:
+	"github.com/vishvananda/netns"
 )
 
 var (
@@ -139,6 +144,27 @@ func (c *Chain) DialContext(ctx context.Context, network, address string, opts .
 	return
 }
 
+// EMOD: 增加一个能切换ns的dialer.
+type NsDialer struct {
+	net.Dialer
+	Netns string
+}
+func (nsd *NsDialer) NsDialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	ns, err := netns.GetFromName(nsd.Netns)
+	if err != nil {
+		return nil, fmt.Errorf("get ns '%s': %w", nsd.Netns, err)
+	}
+	defer ns.Close()
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	if err := netns.Set(ns); err != nil {
+		return nil, fmt.Errorf("setns '%s': %w", nsd.Netns, err)
+	}
+
+	return nsd.DialContext(ctx, network, address)
+}
+
 func (c *Chain) dialWithOptions(ctx context.Context, network, address string, options *ChainOptions) (net.Conn, error) {
 	if options == nil {
 		options = &ChainOptions{}
@@ -198,12 +224,27 @@ func (c *Chain) dialWithOptions(ctx context.Context, network, address string, op
 			}
 		default:
 		}
-		d := &net.Dialer{
-			Timeout: timeout,
-			Control: controlFunction,
-			// LocalAddr: laddr, // TODO: optional local address
+
+		// EMOD: 我们的场景一定不会配置route，回此这里构建laddr。
+		if options.SrcAddr.String() != "" {
+			// 基于ns进行proxy连接。
+			nsd := &NsDialer{
+				Dialer: net.Dialer{
+					Timeout: timeout,
+					Control: controlFunction,
+					LocalAddr: options.SrcAddr,
+				},
+				Netns: options.Netns,
+			}
+			return nsd.NsDialContext(ctx, network, ipAddr)
+		} else {
+			d := &net.Dialer{
+				Timeout: timeout,
+				Control: controlFunction,
+				// LocalAddr: laddr, // TODO: optional local address
+			}
+			return d.DialContext(ctx, network, ipAddr)
 		}
-		return d.DialContext(ctx, network, ipAddr)
 	}
 
 	conn, err := route.getConn(ctx)
@@ -372,6 +413,9 @@ type ChainOptions struct {
 	Hosts    *Hosts
 	Resolver Resolver
 	Mark     int
+	// EMOD:
+	SrcAddr net.Addr
+	Netns string
 }
 
 // ChainOption allows a common way to set chain options.
@@ -402,5 +446,17 @@ func HostsChainOption(hosts *Hosts) ChainOption {
 func ResolverChainOption(resolver Resolver) ChainOption {
 	return func(opts *ChainOptions) {
 		opts.Resolver = resolver
+	}
+}
+
+// EMOD:
+func SrcAddrChainOption(srcAddr net.Addr) ChainOption {
+	return func(opts *ChainOptions) {
+		opts.SrcAddr = srcAddr
+	}
+}
+func NetnsChainOption(netns string) ChainOption {
+	return func(opts *ChainOptions) {
+		opts.Netns = netns
 	}
 }
