@@ -2,7 +2,7 @@
     "Debug": true,
     "Retries": 3,
     "ServeNodes": [
-      "red://192.168.31.179:12345?preserveSrc=true&proxyNetns=gost-out"
+      "red://255.255.255.255:12345?preserveSrc=true&proxyNetns=gost-out&sourceInterface=xedTun"
     ],
     "ChainNodes": [
     ]

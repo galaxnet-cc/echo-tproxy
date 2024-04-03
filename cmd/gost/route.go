@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	// EMOD:
+	"errors"
 
 	"github.com/ginuerzh/gost"
 	"github.com/go-log/log"
@@ -450,7 +452,45 @@ func (r *route) GenRouters() ([]router, error) {
 				chain.Nodes()[len(chain.Nodes())-1].Client.Connector = gost.SSHDirectForwardConnector()
 				chain.Nodes()[len(chain.Nodes())-1].Client.Transporter = gost.SSHForwardTransporter()
 			}
-			ln, err = gost.TCPListener(node.Addr)
+			// XMOD: 替换为接口地址，如果接口找不到地址，则直接退出。
+			// 这样我们可以靠systemd直接再拉起来，适用于tailscaled重启或没有认证的情况。
+			addr := node.Addr
+			ifName := node.Get("sourceInterface")
+			if ifName != "" {
+				var (
+					ief      *net.Interface
+					addrs    []net.Addr
+					ipv4Addr net.IP
+				)
+				if ief, err = net.InterfaceByName(ifName); err != nil { // get interface
+					return nil, errors.New(fmt.Sprintf("your interface %v is error", ifName))
+				}
+				if addrs, err = ief.Addrs(); err != nil { // get addresses
+					return nil, errors.New(fmt.Sprintf("your interface %v is does not have address", ifName))
+				}
+				for _, addr := range addrs { // get ipv4 address
+					if ipv4Addr = addr.(*net.IPNet).IP.To4(); ipv4Addr != nil {
+						break
+					}
+				}
+				if ipv4Addr == nil {
+					return nil, errors.New(fmt.Sprintf("your interface %s don't have an ipv4 address\n", ifName))
+				}
+
+				// 替换地址字段
+				laddr, err := net.ResolveTCPAddr("tcp", addr)
+				if err != nil {
+					return nil, err
+				}
+				tAddr := net.TCPAddr{
+					IP: ipv4Addr,
+					Port: laddr.Port,
+					Zone: laddr.Zone,
+				}
+				addr = tAddr.String()
+				fmt.Printf("substituded address is %v, orig addrs is %v\n", tAddr, laddr)
+			}
+			ln, err = gost.TCPListener(addr)
 		case "vsock":
 			ln, err = gost.VSOCKListener(node.Addr)
 		case "udp":

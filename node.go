@@ -83,7 +83,7 @@ func ParseNode(s string) (node Node, err error) {
 	case "tls", "mtls":
 	case "http2", "h2", "h2c":
 	case "ws", "mws", "wss", "mwss":
-	case "kcp", "ssh", "quic":
+	case "kcp", "ssh":
 	case "ssu":
 		node.Transport = "udp"
 	case "ohttp", "otls", "obfs4": // obfs
